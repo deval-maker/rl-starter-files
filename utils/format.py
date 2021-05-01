@@ -40,6 +40,7 @@ def get_obss_preprocessor(obs_space):
 def preprocess_images(images, device=None):
     # Bug of Pytorch: very slow if not first converted to numpy array
     images = numpy.array(images)
+    images = images.reshape(images.shape[0] * images.shape[1], images.shape[2], images.shape[3], images.shape[4])
     return torch.tensor(images, device=device, dtype=torch.float)
 
 

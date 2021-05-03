@@ -15,9 +15,10 @@ def get_obss_preprocessor(obs_space):
         obs_space = {"image": obs_space.shape}
 
         def preprocess_obss(obss, device=None):
-            return torch_ac.DictList({
-                "image": preprocess_images(obss, device=device)
-            })
+            agent_obs, env_obs = preprocess_images_ma(obss, device=device)
+
+            return torch_ac.DictList({"image": agent_obs}), torch_ac.DictList({"image": env_obs})
+            # return torch_ac.DictList({"image": preprocess_images(obss, device=device)})
 
     # Check if it is a MiniGrid observation space
     elif isinstance(obs_space, gym.spaces.Dict) and list(obs_space.spaces.keys()) == ["image"]:
@@ -39,9 +40,18 @@ def get_obss_preprocessor(obs_space):
 
 def preprocess_images(images, device=None):
     # Bug of Pytorch: very slow if not first converted to numpy array
-    images = numpy.array(images)
+    images = numpy.array(images) # 16 x 2 x 7 x 7 x 7 6 -> 32 x 7x 7x 6
+    images = numpy.reshape(images, (images.shape[0]*images.shape[1],
+                                    images.shape[2], images.shape[3], images.shape[4]))
     return torch.tensor(images, device=device, dtype=torch.float)
 
+def preprocess_images_ma(images, device=None):
+    # Bug of Pytorch: very slow if not first converted to numpy array
+    images = numpy.array(images)  # 16 x 2 x 7 x 7 x 6
+    obs = torch.tensor(images, device=device, dtype=torch.float)
+    agent_obs = torch.flatten(obs, start_dim=0, end_dim=1) # 32 x 7x7x6
+    env_obs = obs
+    return agent_obs, env_obs
 
 def preprocess_texts(texts, vocab, device=None):
     var_indexed_texts = []

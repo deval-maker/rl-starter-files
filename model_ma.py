@@ -15,16 +15,17 @@ def init_params(m):
             m.bias.data.fill_(0)
 
 
-class ACModel(nn.Module, torch_ac.RecurrentACModel):
-    def __init__(self, obs_space, action_space, use_memory=False, use_text=False):
+class ACModelMA(nn.Module, torch_ac.RecurrentACModel):
+    def __init__(self, obs_space, action_space, use_memory=False, use_text=False, n_agents=2):
         super().__init__()
 
         # Decide which components are enabled
         self.use_text = use_text
         self.use_memory = use_memory
+        self.n_agents = n_agents
 
         # Define image embedding
-        self.image_conv = nn.Sequential(
+        self.image_conv_actor = nn.Sequential(
             nn.Conv2d(6, 16, (2, 2)),
             nn.ReLU(),
             nn.MaxPool2d((2, 2)),
@@ -33,6 +34,18 @@ class ACModel(nn.Module, torch_ac.RecurrentACModel):
             nn.Conv2d(32, 64, (2, 2)),
             nn.ReLU()
         )
+        # Define image embedding for critic
+
+        self.image_conv_critic = nn.Sequential(
+            nn.Conv2d(self.n_agents*6, 16, (2, 2)),
+            nn.ReLU(),
+            nn.MaxPool2d((2, 2)),
+            nn.Conv2d(16, 32, (2, 2)),
+            nn.ReLU(),
+            nn.Conv2d(32, 64, (2, 2)),
+            nn.ReLU()
+        )
+
         n = obs_space["image"][1]
         m = obs_space["image"][2]
         self.image_embedding_size = ((n-1)//2-2)*((m-1)//2-2)*64
@@ -78,29 +91,41 @@ class ACModel(nn.Module, torch_ac.RecurrentACModel):
     def semi_memory_size(self):
         return self.image_embedding_size
 
-    def forward(self, obs, memory):
-        x = obs.image.transpose(1, 3).transpose(2, 3)
-        x = self.image_conv(x)
-        x = x.reshape(x.shape[0], -1)
+    def forward(self, agent_obs, env_obs, memory):
+        
+        # agent_obs -> 32 x 7 x 7 x6
+        x_actor = agent_obs.image.transpose(1, 3).transpose(2, 3)
+        x_actor = self.image_conv_actor(x_actor)
+        x_actor = x_actor.reshape(x_actor.shape[0], -1)
 
-        if self.use_memory:
-            hidden = (memory[:, :self.semi_memory_size], memory[:, self.semi_memory_size:])
-            hidden = self.memory_rnn(x, hidden)
-            embedding = hidden[0]
-            memory = torch.cat(hidden, dim=1)
-        else:
-            embedding = x
-
-        if self.use_text:
-            embed_text = self._get_embed_text(obs.text)
-            embedding = torch.cat((embedding, embed_text), dim=1)
-
-        x = self.actor(embedding)
+        # 32 x 7 x 7 x 6 -> 32
+        x = self.actor(x_actor)
         dist = Categorical(logits=F.log_softmax(x, dim=1))
 
-        x = self.critic(embedding)
+        # if self.use_memory:
+        #     hidden = (memory[:, :self.semi_memory_size], memory[:, self.semi_memory_size:])
+        #     hidden = self.memory_rnn(x, hidden)
+        #     embedding = hidden[0]
+        #     memory = torch.cat(hidden, dim=1)
+        # else:
+        #     embedding = x
+
+        # if self.use_text:
+        #     embed_text = self._get_embed_text(obs.text)
+        #     embedding = torch.cat((embedding, embed_text), dim=1)
+
+        # 16x2x7x7x6 -> 16x7x7x6x2 -> 16x7x7x12
+        x_critic = env_obs.image.permute(0, 2, 3, 4, 1)
+        x_critic = torch.flatten(x_critic, start_dim=3, end_dim=4)
+        x_critic = x_critic.transpose(1, 3).transpose(2, 3)
+        x_critic = self.image_conv_critic(x_critic)
+        x_critic = x_critic.reshape(x_critic.shape[0], -1)
+
+        # 16 x 7 x 7 x 12 -> 16
+        x = self.critic(x_critic)
         value = x.squeeze(1)
 
+        # dist -> 32, value -> 16
         return dist, value, memory
 
     def _get_embed_text(self, text):

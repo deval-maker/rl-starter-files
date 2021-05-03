@@ -31,10 +31,25 @@ def get_obss_preprocessor(obs_space):
             })
         preprocess_obss.vocab = vocab
 
+    elif isinstance(obs_space, gym.spaces.Dict) and "global" in list(obs_space.spaces.keys()):
+        obs_space = {"image": obs_space.spaces["image"].shape, "global": obs_space.spaces["global"].shape}
+
+        def preprocess_obss(obss, device=None):
+            return torch_ac.DictList({
+                "image": preprocess_images([obs["image"] for obs in obss], device=device),
+                "global": preprocess_globals([obs["global"] for obs in obss], device=device)
+            })
+
     else:
         raise ValueError("Unknown observation space: " + str(obs_space))
 
     return obs_space, preprocess_obss
+
+def preprocess_globals(images, device=None):
+    # Bug of Pytorch: very slow if not first converted to numpy array
+    images = numpy.array(images)
+    images = images.reshape(images.shape[0] * images.shape[1], images.shape[2], images.shape[3])
+    return torch.tensor(images, device=device, dtype=torch.float)
 
 
 def preprocess_images(images, device=None):

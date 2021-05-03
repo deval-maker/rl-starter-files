@@ -117,6 +117,8 @@ if "vocab" in status:
 txt_logger.info("Observations preprocessor loaded")
 
 # Load model
+args.mem = False
+args.text = False
 
 acmodel = ACModel(obs_space, envs[0].action_space, args.mem, args.text)
 if "model_state" in status:

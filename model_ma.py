@@ -16,7 +16,7 @@ def init_params(m):
 
 
 class ACModelMA(nn.Module, torch_ac.RecurrentACModel):
-    def __init__(self, obs_space, action_space, use_memory=False, use_text=False, n_agents=2):
+    def __init__(self, obs_space, action_space, n_agents, obs_dim, use_memory=False, use_text=False):
         super().__init__()
 
         # Decide which components are enabled
@@ -26,7 +26,7 @@ class ACModelMA(nn.Module, torch_ac.RecurrentACModel):
 
         # Define image embedding
         self.image_conv_actor = nn.Sequential(
-            nn.Conv2d(6, 16, (2, 2)),
+            nn.Conv2d(obs_dim, 16, (2, 2)),
             nn.ReLU(),
             nn.MaxPool2d((2, 2)),
             nn.Conv2d(16, 32, (2, 2)),
@@ -35,14 +35,14 @@ class ACModelMA(nn.Module, torch_ac.RecurrentACModel):
             nn.ReLU()
         )
         # Define image embedding for critic
-
+        
         self.image_conv_critic = nn.Sequential(
-            nn.Conv2d(self.n_agents*6, 16, (2, 2)),
+            nn.Conv2d(self.n_agents*obs_dim, 64, (2, 2)),
             nn.ReLU(),
             nn.MaxPool2d((2, 2)),
-            nn.Conv2d(16, 32, (2, 2)),
+            nn.Conv2d(64, 128, (2, 2)),
             nn.ReLU(),
-            nn.Conv2d(32, 64, (2, 2)),
+            nn.Conv2d(128, 128, (2, 2)),
             nn.ReLU()
         )
 
@@ -75,7 +75,7 @@ class ACModelMA(nn.Module, torch_ac.RecurrentACModel):
 
         # Define critic's model
         self.critic = nn.Sequential(
-            nn.Linear(self.embedding_size, 64),
+            nn.Linear(self.embedding_size*2, 64),
             nn.Tanh(),
             nn.Linear(64, 1)
         )
@@ -93,7 +93,7 @@ class ACModelMA(nn.Module, torch_ac.RecurrentACModel):
 
     def forward(self, agent_obs, env_obs, memory):
         
-        # agent_obs -> 32 x 7 x 7 x6
+        # agent_obs -> 32 x 7 x 7 x 6
         x_actor = agent_obs.image.transpose(1, 3).transpose(2, 3)
         x_actor = self.image_conv_actor(x_actor)
         x_actor = x_actor.reshape(x_actor.shape[0], -1)

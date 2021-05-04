@@ -51,7 +51,7 @@ print("Environment loaded\n")
 # Load agent
 
 model_dir = utils.get_model_dir(args.model)
-agent = utils.MultiAgent(env.observation_space, env.action_space, model_dir,
+agent = utils.MultiAgent(env.observation_space, env.action_space, model_dir, env.n_agents, env.world.encode_dim,
                     device=device, argmax=args.argmax, use_memory=args.memory, use_text=args.text)
 print("Agent loaded\n")
 
@@ -68,7 +68,7 @@ for episode in range(args.episodes):
     obs = env.reset()
 
     while True:
-        env.render('human', highlight=True)
+        env.render('human', highlight=False)
         if args.gif:
             frames.append(numpy.moveaxis(env.render("rgb_array"), 2, 0))
 

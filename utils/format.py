@@ -32,6 +32,14 @@ def get_obss_preprocessor(obs_space):
             })
         preprocess_obss.vocab = vocab
 
+    elif isinstance(obs_space, gym.spaces.Dict) and "global" in list(obs_space.spaces.keys()):
+        obs_space = {"image": obs_space.spaces["image"].shape, "global": obs_space.spaces["global"].shape}
+
+        def preprocess_obss(obss, device=None):
+
+            agent_obs, env_obs = preprocess_images_ma([obs["image"] for obs in obss], device=device)
+
+            return torch_ac.DictList({"image": agent_obs}), torch_ac.DictList({"image": env_obs})
     else:
         raise ValueError("Unknown observation space: " + str(obs_space))
 

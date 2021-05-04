@@ -25,7 +25,7 @@ parser.add_argument("--seed", type=int, default=1,
                     help="random seed (default: 1)")
 parser.add_argument("--log-interval", type=int, default=1,
                     help="number of updates between two logs (default: 1)")
-parser.add_argument("--save-interval", type=int, default=10,
+parser.add_argument("--save-interval", type=int, default=1,
                     help="number of updates between two saves (default: 10, 0 means no saving)")
 parser.add_argument("--procs", type=int, default=16,
                     help="number of processes (default: 16)")
@@ -37,7 +37,7 @@ parser.add_argument("--epochs", type=int, default=4,
                     help="number of epochs for PPO (default: 4)")
 parser.add_argument("--batch-size", type=int, default=256,
                     help="batch size for PPO (default: 256)")
-parser.add_argument("--frames-per-proc", type=int, default=None,
+parser.add_argument("--frames-per-proc", type=int, default=400,
                     help="number of frames per process before update (default: 5 for A2C and 128 for PPO)")
 parser.add_argument("--discount", type=float, default=0.99,
                     help="discount factor (default: 0.99)")
@@ -55,7 +55,7 @@ parser.add_argument("--optim-eps", type=float, default=1e-8,
                     help="Adam and RMSprop optimizer epsilon (default: 1e-8)")
 parser.add_argument("--optim-alpha", type=float, default=0.99,
                     help="RMSprop optimizer alpha (default: 0.99)")
-parser.add_argument("--clip-eps", type=float, default=0.2,
+parser.add_argument("--clip-eps", type=float, default=0.1,
                     help="clipping epsilon for PPO (default: 0.2)")
 parser.add_argument("--recurrence", type=int, default=1,
                     help="number of time-steps gradient is backpropagated (default: 1). If > 1, a LSTM is added to the model to have memory.")
@@ -150,6 +150,8 @@ num_frames = status["num_frames"]
 update = status["update"]
 start_time = time.time()
 
+prev_ret = -10000
+
 while num_frames < args.frames:
     # Update model parameters
 
@@ -196,11 +198,11 @@ while num_frames < args.frames:
             tb_writer.add_scalar(field, value, num_frames)
 
     # Save status
-
-    if args.save_interval > 0 and update % args.save_interval == 0:
+    if args.save_interval > 0 and update % args.save_interval == 0 and rreturn_per_episode["mean"] > prev_ret:
         status = {"num_frames": num_frames, "update": update,
                   "model_state": acmodel.state_dict(), "optimizer_state": algo.optimizer.state_dict()}
         if hasattr(preprocess_obss, "vocab"):
             status["vocab"] = preprocess_obss.vocab.vocab
         utils.save_status(status, model_dir)
         txt_logger.info("Status saved")
+        prev_ret = rreturn_per_episode["mean"]

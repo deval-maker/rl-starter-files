@@ -38,7 +38,7 @@ class Agent:
                 dist, _ = self.acmodel(preprocessed_obss)
 
         if self.argmax:
-            actions = dist.probs.max(1, keepdim=True)[1]
+            actions = dist.probs.max(1, keepdim=False)[1]
         else:
             actions = dist.sample()
 

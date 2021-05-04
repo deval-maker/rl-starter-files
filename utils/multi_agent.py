@@ -41,7 +41,7 @@ class MultiAgent:
                 dist, _ = self.acmodel(agent_obs, env_obs)
 
         if self.argmax:
-            actions = dist.probs.max(1, keepdim=True)[1]
+            actions = dist.probs.max(1, keepdim=False)[1]
         else:
             actions = dist.sample()
 

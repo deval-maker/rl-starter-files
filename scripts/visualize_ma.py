@@ -74,11 +74,11 @@ for episode in range(args.episodes):
     while True:
 
         if t1 != path.getmtime(model_path):
-            agent = utils.Agent(env.observation_space, env.action_space, model_dir,
+            agent = utils.MultiAgent(env.observation_space, env.action_space, model_dir,
                     device=device, argmax=args.argmax, use_memory=args.memory, use_text=args.text)
             print("Model Updated.")
             t1 = path.getmtime(model_path)
-            
+
         env.render('human', highlight=False)
         if args.gif:
             frames.append(numpy.moveaxis(env.render("rgb_array"), 2, 0))

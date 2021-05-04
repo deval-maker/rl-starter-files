@@ -34,6 +34,17 @@ class ACModelMA(nn.Module, torch_ac.RecurrentACModel):
             nn.Conv2d(32, 64, (2, 2)),
             nn.ReLU()
         )
+        self.image_conv_actor = nn.Sequential(
+            nn.Conv2d(obs_dim, 32, (5, 5)),
+            nn.ReLU(),
+            # nn.MaxPool2d((2, 2)),
+            nn.Conv2d(32, 64, (3, 3)),
+            nn.ReLU(),
+            nn.Conv2d(64, 128, (3, 3)),
+            nn.ReLU(),
+            nn.Conv2d(128, 256, (3, 3)),
+            nn.ReLU()
+        )
         # Define image embedding for critic
         
         self.image_conv_critic = nn.Sequential(
@@ -43,6 +54,17 @@ class ACModelMA(nn.Module, torch_ac.RecurrentACModel):
             nn.Conv2d(64, 128, (2, 2)),
             nn.ReLU(),
             nn.Conv2d(128, 128, (2, 2)),
+            nn.ReLU()
+        )
+        self.image_conv_critic = nn.Sequential(
+            nn.Conv2d(self.n_agents*obs_dim, 32, (5, 5)),
+            nn.ReLU(),
+            # nn.MaxPool2d((2, 2)),
+            nn.Conv2d(32, 64, (3, 3)),
+            nn.ReLU(),
+            nn.Conv2d(64, 128, (3, 3)),
+            nn.ReLU(),
+            nn.Conv2d(128, 256, (3, 3)),
             nn.ReLU()
         )
 
@@ -68,17 +90,31 @@ class ACModelMA(nn.Module, torch_ac.RecurrentACModel):
 
         # Define actor's model
         self.actor = nn.Sequential(
-            nn.Linear(self.embedding_size, 64),
+            nn.Linear(256*9, 256),
+            nn.Tanh(),
+            nn.Linear(256, 64),
             nn.Tanh(),
             nn.Linear(64, action_space.n)
         )
+        # self.actor = nn.Sequential(
+        #     nn.Linear(self.embedding_size, 64),
+        #     nn.Tanh(),
+        #     nn.Linear(64, action_space.n)
+        # )
 
         # Define critic's model
         self.critic = nn.Sequential(
-            nn.Linear(self.embedding_size*2, 64),
+            nn.Linear(256*9, 256),
+            nn.Tanh(),
+            nn.Linear(256, 64),
             nn.Tanh(),
             nn.Linear(64, 1)
-        )
+        )        
+        # self.critic = nn.Sequential(
+        #     nn.Linear(self.embedding_size*2, 64),
+        #     nn.Tanh(),
+        #     nn.Linear(64, 1)
+        # )
 
         # Initialize parameters correctly
         self.apply(init_params)

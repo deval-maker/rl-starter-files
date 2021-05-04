@@ -4,6 +4,7 @@ import numpy
 import torch
 
 import utils
+import os.path as path
 
 
 # Parse arguments
@@ -17,7 +18,7 @@ parser.add_argument("--seed", type=int, default=0,
                     help="random seed (default: 0)")
 parser.add_argument("--shift", type=int, default=0,
                     help="number of times the environment is reset at the beginning (default: 0)")
-parser.add_argument("--argmax", action="store_true", default=False,
+parser.add_argument("--argmax", action="store_true", default=True,
                     help="select the action with highest probability (default: False)")
 parser.add_argument("--pause", type=float, default=0.1,
                     help="pause duration between two consequent actions of the agent (default: 0.1)")
@@ -64,10 +65,20 @@ if args.gif:
 # Create a window to view the environment
 env.render('human')
 
+model_path = utils.get_status_path(model_dir)
+t1 = path.getmtime(model_path)
+
 for episode in range(args.episodes):
     obs = env.reset()
 
     while True:
+
+        if t1 != path.getmtime(model_path):
+            agent = utils.Agent(env.observation_space, env.action_space, model_dir,
+                    device=device, argmax=args.argmax, use_memory=args.memory, use_text=args.text)
+            print("Model Updated.")
+            t1 = path.getmtime(model_path)
+            
         env.render('human', highlight=False)
         if args.gif:
             frames.append(numpy.moveaxis(env.render("rgb_array"), 2, 0))

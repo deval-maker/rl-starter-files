@@ -25,6 +25,48 @@ class ACModelMA(nn.Module, torch_ac.RecurrentACModel):
         self.n_agents = n_agents
 
         # Define image embedding
+        # self.image_conv_actor = nn.Sequential(
+        #     nn.Conv2d(obs_dim, 16, (2, 2)),
+        #     nn.ReLU(),
+        #     nn.MaxPool2d((2, 2)),
+        #     nn.Conv2d(16, 32, (2, 2)),
+        #     nn.ReLU(),
+        #     nn.Conv2d(32, 64, (2, 2)),
+        #     nn.ReLU()
+        # )
+        # self.image_conv_actor = nn.Sequential(
+        #     nn.Conv2d(obs_dim, 32, (5, 5)),
+        #     nn.ReLU(),
+        #     # nn.MaxPool2d((2, 2)),
+        #     nn.Conv2d(32, 64, (3, 3)),
+        #     nn.ReLU(),
+        #     nn.Conv2d(64, 128, (3, 3)),
+        #     nn.ReLU(),
+        #     nn.Conv2d(128, 256, (3, 3)),
+        #     nn.ReLU()
+        # )
+        # Define image embedding for critic
+
+        # self.image_conv_critic = nn.Sequential(
+        #     nn.Conv2d(self.n_agents*obs_dim, 64, (2, 2)),
+        #     nn.ReLU(),
+        #     nn.MaxPool2d((2, 2)),
+        #     nn.Conv2d(64, 128, (2, 2)),
+        #     nn.ReLU(),
+        #     nn.Conv2d(128, 128, (2, 2)),
+        #     nn.ReLU()
+        # )
+        # self.image_conv_critic = nn.Sequential(
+        #     nn.Conv2d(self.n_agents*obs_dim, 32, (5, 5)),
+        #     nn.ReLU(),
+        #     # nn.MaxPool2d((2, 2)),
+        #     nn.Conv2d(32, 64, (3, 3)),
+        #     nn.ReLU(),
+        #     nn.Conv2d(64, 128, (3, 3)),
+        #     nn.ReLU(),
+        #     nn.Conv2d(128, 256, (3, 3)),
+        #     nn.ReLU()
+        # )
 
         self.image_conv = nn.Sequential(
             nn.Conv2d(obs_dim, 32, (5, 5)),
@@ -34,12 +76,13 @@ class ACModelMA(nn.Module, torch_ac.RecurrentACModel):
             nn.ReLU(),
             nn.Conv2d(64, 128, (3, 3)),
             nn.ReLU(),
-            nn.Conv2d(128, 256, (2, 2)),
-            nn.ReLU(),
-            nn.Flatten(),
-            nn.Linear(4096, 2048),
-            nn.Tanh(),
-            nn.Linear(2048, 1024)
+            nn.Conv2d(128, 256, (3, 3)),
+            nn.ReLU()
+        )
+
+        self.critic_conv = nn.Sequential(
+            nn.Conv2d(256*self.n_agents, 256, (3, 3)),
+            nn.ReLU()
         )
 
         n = obs_space["image"][1]
@@ -64,7 +107,7 @@ class ACModelMA(nn.Module, torch_ac.RecurrentACModel):
 
         # Define actor's model
         self.actor = nn.Sequential(
-            nn.Linear(1024, 256),
+            nn.Linear(256*9, 256),
             nn.Tanh(),
             nn.Linear(256, 64),
             nn.Tanh(),
@@ -78,7 +121,7 @@ class ACModelMA(nn.Module, torch_ac.RecurrentACModel):
 
         # Define critic's model
         self.critic = nn.Sequential(
-            nn.Linear(1024, 512),
+            nn.Linear(512*9, 512),
             nn.Tanh(),
             nn.Linear(512, 128),
             nn.Tanh(),
@@ -111,7 +154,7 @@ class ACModelMA(nn.Module, torch_ac.RecurrentACModel):
         # agent_obs -> 32 x 7 x 7 x 6
         x_actor = agent_obs.image.transpose(1, 3).transpose(2, 3)
         x_actor = self.image_conv(x_actor)
-        # x_actor = x_actor.reshape(x_actor.shape[0], -1)
+        x_actor = x_actor.reshape(x_actor.shape[0], -1)
 
         # 32 x 7 x 7 x 6 -> 32
         x_actor = self.actor(x_actor)
@@ -143,8 +186,7 @@ class ACModelMA(nn.Module, torch_ac.RecurrentACModel):
         x_critic = self.image_conv(x_critic)
 
         x_critic = x_critic.reshape(-1, self.n_agents, *x_critic.shape[1:])
-
-        x_critic = torch.sum(x_critic, dim=1)
+        x_critic = x_critic.flatten(start_dim=1, end_dim=4)
         
         # 16 x 7 x 7 x 12 -> 16
         x_critic = self.critic(x_critic)

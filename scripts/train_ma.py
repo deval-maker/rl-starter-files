@@ -27,7 +27,7 @@ parser.add_argument("--log-interval", type=int, default=1,
                     help="number of updates between two logs (default: 1)")
 parser.add_argument("--save-interval", type=int, default=1,
                     help="number of updates between two saves (default: 10, 0 means no saving)")
-parser.add_argument("--procs", type=int, default=8,
+parser.add_argument("--procs", type=int, default=10,
                     help="number of processes (default: 16)")
 parser.add_argument("--frames", type=int, default=10**7,
                     help="number of frames of training (default: 1e7)")
@@ -198,7 +198,7 @@ while num_frames < args.frames:
 
     # Save status
 
-    if args.save_interval > 0 and update % args.save_interval == 0 and rreturn_per_episode["mean"] > prev_ret:
+    if rreturn_per_episode["mean"] > prev_ret:
         status = {"num_frames": num_frames, "update": update,
                   "model_state": acmodel.state_dict(), "optimizer_state": algo.optimizer.state_dict()}
         if hasattr(preprocess_obss, "vocab"):

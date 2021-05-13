@@ -25,7 +25,7 @@ class ACModel(nn.Module, torch_ac.RecurrentACModel):
 
         # Define image embedding
         self.image_conv = nn.Sequential(
-            nn.Conv2d(6, 16, (2, 2)),
+            nn.Conv2d(7, 16, (2, 2)),
             nn.ReLU(),
             nn.MaxPool2d((2, 2)),
             nn.Conv2d(16, 32, (2, 2)),
@@ -84,10 +84,11 @@ class ACModel(nn.Module, torch_ac.RecurrentACModel):
         x = x.reshape(x.shape[0], -1)
 
         if self.use_memory:
+            import ipdb; ipdb.set_trace()
             hidden = (memory[:, :self.semi_memory_size], memory[:, self.semi_memory_size:])
-            hidden = self.memory_rnn(x, hidden)
+            hidden = self.memory_rnn(x, hidden) # h-> 1024 , c->1024
             embedding = hidden[0]
-            memory = torch.cat(hidden, dim=1)
+            memory = torch.cat(hidden, dim=1) # 2048
         else:
             embedding = x
 

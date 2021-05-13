@@ -20,9 +20,10 @@ class MultiAgent:
         self.device = device
         self.argmax = argmax
         self.num_envs = num_envs
+        self.num_agents = n_agents
 
         if self.acmodel.recurrent:
-            self.memories = torch.zeros(self.num_envs, self.acmodel.memory_size, device=self.device)
+            self.memories = torch.zeros(self.num_envs*self.num_agents, self.acmodel.memory_size, device=self.device)
 
         self.acmodel.load_state_dict(utils.get_model_state(model_dir))
         self.acmodel.to(self.device)
@@ -34,6 +35,7 @@ class MultiAgent:
 
         agent_obs, env_obs = self.preprocess_obss(obss, device=self.device)
 
+        # import ipdb; ipdb.set_trace()
         with torch.no_grad():
             if self.acmodel.recurrent:
                 dist, _, self.memories = self.acmodel(agent_obs, env_obs, self.memories)

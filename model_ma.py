@@ -106,6 +106,7 @@ class ACModelMA(nn.Module, torch_ac.RecurrentACModel):
     # 8*2 x 13 x 13 x7, 8 x 2 x 13x 13 x 7
     def forward(self, agent_obs, env_obs, memory):
         
+        # import ipdb; ipdb.set_trace()
         # agent obs - 256 x 13 x 13 x 7
         # env obs - 256 x 2 x 13 x 13 x 7 -> 512 x 13 x 13 x 7 -> 512 x 256 x 3 x 3 -> 256 x 2 x 256x 3 x3 -> 256 x 512 x 3 x 3 -> 256 x 512*3*3 -> 256
         # agent_obs -> 32 x 7 x 7 x 6
@@ -113,15 +114,17 @@ class ACModelMA(nn.Module, torch_ac.RecurrentACModel):
         x_actor = self.image_conv(x_actor)
         # x_actor = x_actor.reshape(x_actor.shape[0], -1)
 
+        if self.use_memory: #memory-> 10*2 x 2048
+            # memory = memory.flatten(start_dim=0, end_dim=1)
+            hidden = (memory[:, :self.semi_memory_size], memory[:, self.semi_memory_size:])
+            hidden = self.memory_rnn(x_actor, hidden)
+            x_actor = hidden[0]
+            memory = torch.cat(hidden, dim=1)
+
         # 32 x 7 x 7 x 6 -> 32
         x_actor = self.actor(x_actor)
         dist = Categorical(logits=F.log_softmax(x_actor, dim=1))
 
-        # if self.use_memory:
-        #     hidden = (memory[:, :self.semi_memory_size], memory[:, self.semi_memory_size:])
-        #     hidden = self.memory_rnn(x, hidden)
-        #     embedding = hidden[0]
-        #     memory = torch.cat(hidden, dim=1)
         # else:
         #     embedding = x
 
@@ -149,6 +152,8 @@ class ACModelMA(nn.Module, torch_ac.RecurrentACModel):
         # 16 x 7 x 7 x 12 -> 16
         x_critic = self.critic(x_critic)
         value = x_critic.squeeze(1)
+
+        # memory = memory.reshape(-1, self.n_agents, memory.shape[1])
 
         # dist -> 32, value -> 16
         return dist, value, memory

@@ -4,7 +4,7 @@ import numpy
 import torch
 
 import utils
-
+import os.path as path
 
 # Parse arguments
 
@@ -25,7 +25,7 @@ parser.add_argument("--gif", type=str, default=None,
                     help="store output as gif with the given filename")
 parser.add_argument("--episodes", type=int, default=1000000,
                     help="number of episodes to visualize")
-parser.add_argument("--memory", action="store_true", default=False,
+parser.add_argument("--memory", action="store_true", default=True,
                     help="add a LSTM to the model")
 parser.add_argument("--text", action="store_true", default=False,
                     help="add a GRU to the model")
@@ -64,10 +64,20 @@ if args.gif:
 # Create a window to view the environment
 env.render('human')
 
+model_path = utils.get_status_path(model_dir)
+t1 = path.getmtime(model_path)
+
 for episode in range(args.episodes):
     obs = env.reset()
 
     while True:
+        
+        if t1 != path.getmtime(model_path):
+            agent = utils.Agent(env.observation_space, env.action_space, model_dir,
+                    device=device, argmax=args.argmax, use_memory=args.memory, use_text=args.text)
+            print("Model Updated.")
+            t1 = path.getmtime(model_path)
+
         env.render('human')
         if args.gif:
             frames.append(numpy.moveaxis(env.render("rgb_array"), 2, 0))
@@ -75,6 +85,8 @@ for episode in range(args.episodes):
         action = agent.get_action(obs)
         obs, reward, done, _ = env.step(action)
         agent.analyze_feedback(reward, done)
+
+        time.sleep(0.2)
 
         if done or env.window.closed:
             break

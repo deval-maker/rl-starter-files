@@ -57,7 +57,7 @@ parser.add_argument("--optim-alpha", type=float, default=0.99,
                     help="RMSprop optimizer alpha (default: 0.99)")
 parser.add_argument("--clip-eps", type=float, default=0.2,
                     help="clipping epsilon for PPO (default: 0.2)")
-parser.add_argument("--recurrence", type=int, default=1,
+parser.add_argument("--recurrence", type=int, default=2,
                     help="number of time-steps gradient is backpropagated (default: 1). If > 1, a LSTM is added to the model to have memory.")
 parser.add_argument("--text", action="store_true", default=False,
                     help="add a GRU to the model to handle text input")
@@ -148,6 +148,8 @@ num_frames = status["num_frames"]
 update = status["update"]
 start_time = time.time()
 
+prev_ret = -10000
+
 while num_frames < args.frames:
     # Update model parameters
 
@@ -195,10 +197,11 @@ while num_frames < args.frames:
 
     # Save status
 
-    if args.save_interval > 0 and update % args.save_interval == 0:
+    if (args.save_interval > 0 and update % args.save_interval == 0) or rreturn_per_episode["mean"] > prev_ret:
         status = {"num_frames": num_frames, "update": update,
                   "model_state": acmodel.state_dict(), "optimizer_state": algo.optimizer.state_dict()}
         if hasattr(preprocess_obss, "vocab"):
             status["vocab"] = preprocess_obss.vocab.vocab
         utils.save_status(status, model_dir)
         txt_logger.info("Status saved")
+        prev_ret = rreturn_per_episode["mean"]

@@ -110,7 +110,7 @@ class ACModelMA(nn.Module, torch_ac.RecurrentACModel):
         # agent obs - 256 x 13 x 13 x 7
         # env obs - 256 x 2 x 13 x 13 x 7 -> 512 x 13 x 13 x 7 -> 512 x 256 x 3 x 3 -> 256 x 2 x 256x 3 x3 -> 256 x 512 x 3 x 3 -> 256 x 512*3*3 -> 256
         # agent_obs -> 32 x 7 x 7 x 6
-        x_actor = agent_obs.image.transpose(1, 3).transpose(2, 3)
+        x_actor = agent_obs.transpose(1, 3).transpose(2, 3)
         x_actor = self.image_conv(x_actor)
         # x_actor = x_actor.reshape(x_actor.shape[0], -1)
 
@@ -141,7 +141,7 @@ class ACModelMA(nn.Module, torch_ac.RecurrentACModel):
 
         #256x2x13x13x7 -> 512 * 13 * 13 * 7 -> 512 * 7 * 13 * 13 -> 512 * 256 * 3 * 3 -> 256 * 2 * 256 * 3 * 3
         # 256 * 512 * 3 * 3 -> 256 * 512*3*3
-        x_critic = env_obs.image.flatten(start_dim=0, end_dim=1)
+        x_critic = env_obs.flatten(start_dim=0, end_dim=1)
         x_critic = x_critic.permute(0,3,1,2)
         x_critic = self.image_conv(x_critic)
 

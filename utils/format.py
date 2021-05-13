@@ -39,7 +39,7 @@ def get_obss_preprocessor(obs_space):
 
             agent_obs, env_obs = preprocess_images_ma([obs["image"] for obs in obss], device=device)
 
-            return torch_ac.DictList({"image": agent_obs}), torch_ac.DictList({"image": env_obs})
+            return agent_obs, env_obs
     else:
         raise ValueError("Unknown observation space: " + str(obs_space))
 

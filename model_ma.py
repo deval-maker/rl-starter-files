@@ -30,16 +30,18 @@ class ACModelMA(nn.Module, torch_ac.RecurrentACModel):
             nn.Conv2d(obs_dim, 32, (5, 5)),
             nn.ReLU(),
             # nn.MaxPool2d((2, 2)),
-            nn.Conv2d(32, 64, (3, 3)),
+            nn.Conv2d(32, 64, (4, 4)),
             nn.ReLU(),
             nn.Conv2d(64, 128, (3, 3)),
             nn.ReLU(),
-            nn.Conv2d(128, 256, (2, 2)),
+            nn.Conv2d(128, 256, (3, 3)),
+            nn.ReLU(),
+            nn.Conv2d(256, 256, (3, 3)),
             nn.ReLU(),
             nn.Flatten(),
-            nn.Linear(4096, 2048),
+            nn.Linear(1024, 1024),
             nn.Tanh(),
-            nn.Linear(2048, 1024)
+            nn.Linear(1024, 1024)
         )
 
         n = obs_space["image"][1]
